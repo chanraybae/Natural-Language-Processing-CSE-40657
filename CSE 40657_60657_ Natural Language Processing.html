@@ -1,0 +1,176 @@
+
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSE 40657/60657: Natural Language Processing</title>
+    <link rel="stylesheet" href="css/foundation.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/nlp.css" />
+  </head>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$']]}
+});
+</script>
+<script type="text/javascript"
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+  <body>
+
+
+<div class="row">
+<div class="large-12 columns">
+<h1> <small>CSE 40657/60657</small> <br> Homework 1</h1>
+</div>
+</div>
+
+<div class="row">
+<div class="medium-4 columns">
+<dl class="info">
+<dt>Due</dt> <dd>2023/09/15</dd>
+<dt>Points</dt> <dd>30</dd>
+</dl>
+</div>
+
+<div class="medium-8 columns">
+<p>In situations where text input is slow (mobile phones, Chinese/Japanese characters, users with disabilities), it can be helpful for the computer to be able to guess the next character(s) the user will type. In this assignment, you'll build a character language model and test how well it can predict the next character.</p>
+</div>
+</div>
+
+<div class="row">
+<div class="large-12 columns">
+
+<h2>Setup</h2>
+
+<p>Visit <a href="https://classroom.github.com/a/TeSEcyIa">this GitHub Classroom link</a> to create a Git repository for you, and clone it to your computer. It contains the following files:
+<table>
+<tr><td><code>data/small</code></td><td>small training data</td></tr>
+<tr><td><code>data/large</code></td><td>full training data</td></tr>
+<tr><td><code>data/dev</code></td><td>development data</td></tr>
+<tr><td><code>data/test</code></td><td>test data</td></tr>
+<tr><td><code>predict.py</code></td><td>text-prediction demo</td></tr>
+<tr><td><code>unigram.py</code></td><td>unigram language model</td></tr>
+<tr><td><code>utils.py</code></td><td>possibly useful code</td></tr>
+</table>
+</p>
+
+<p>The data files come from the <a href="https://scholarbank.nus.edu.sg/handle/10635/137343">NUS SMS Corpus</a>, a collection of real text messages sent mostly by students at the National University of Singapore. This is the English portion of the corpus, though it has a lot of interesting examples of <a href="https://en.wikipedia.org/wiki/Singlish">Singlish</a>, which mixes in elements of Malay and various Chinese languages.</p>
+
+<p>In the following, point values are written after each requirement, like this.<span class="rubric">30</span></p>
+
+<p>All the language models that you build for this assignment should support the following operations. If the model object is called <code>m</code>, then <code>m</code> should have a member <code>m.vocab</code> of type <code>utils.Vocab</code>, which converts characters to integers (<code>m.vocab.numberize</code>) and converts integers to characters (<code>m.vocab.denumberize</code>). Furthermore, it should implement the following methods:
+<ul>
+<li><code>m.start()</code>: Return the start state.</li>
+<li><code>m.step(q, a)</code>: Run one step of the model, where <code>q</code> is the state the model is in before the step, and <code>a</code> is the numberized input symbol. The return value is <code>(r, p)</code>, where <code>r</code> is the state the model enters after the step, and <code>p</code> is the model's prediction of the next output symbol, such that for any numberized symbol <code>b</code>, <code>p[b]</code> is the log-probability of  <code>b</code>.</li>
+</ul>
+For example, the code to compute the log-probability of <code>foo</code> would be
+<pre><code>q = m.start()
+p_foo = 0.
+q, p = m.step(q, m.vocab.numberize('&lt;BOS&gt;'))
+p_foo += p[m.vocab.numberize('f')]
+q, p = m.step(q, m.vocab.numberize('f'))
+p_foo += p[m.vocab.numberize('o')]
+q, p = m.step(q, m.vocab.numberize('o'))
+p_foo += p[m.vocab.numberize('o')]
+q, p = m.step(q, m.vocab.numberize('o'))
+p_foo += p[m.vocab.numberize('&lt;EOS&gt;')]
+</code></pre>
+
+A model implementing this interface can be plugged into <code>predict.py</code>, which predicts the next 20 characters based on what you've typed so far.</p>
+
+<h2>1. Baseline</h2>
+
+<p>The file <code>unigram.py</code> provides a class <code>Unigram</code> that implements the above interface using a unigram language model. The <code>Unigram</code> constructor expects a list of lists of characters to train on.</p>
+
+<ol class="alpha">
+  <li>Write a program that reads in the training data (<code>data/large</code>) and uses <code>unigram.Unigram</code> to train a unigram model.<span class="rubric">3</span> Be sure to strip off trailing newlines when you read a file.</li>
+  <li>Write code that, for each character position in the development data (<code>data/dev</code>), including EOS, predicts the most probable character given all previous <em>correct</em> characters.<span class="rubric">5</span>
+Report the number of correct characters, the total number of characters, and the accuracy (what percent of the characters are correct).<span class="rubric">1</span>
+It should be 6620/40176 &approx; 16.477%.<span class="rubric">1</span>
+  <li>Try running <code>python predict.py data/large</code> By default, it uses a unigram language model, which is not very interesting, because the model always predicts a space. (Nothing to report here.)</p>
+</ol>
+
+<h2>2. <i>n</i>-gram language model</h2>
+
+<p>In this part, you'll replace the unigram language model with a 5-gram model.</p>
+<ol class="alpha">
+<li>Implement a 5-gram language model.<span class="rubric">5</span> For smoothing, just use add-one smoothing.<span class="rubric">3</span></li>
+<li>Train it on <code>data/large</code>. Report your accuracy on <code>data/dev</code>, which should be at least 49%.<span class="rubric">1</span> Remember to include EOS but not BOS when computing accuracy.
+</li>
+<li>After you've gotten your model working, run it on the test set (<code>data/test</code>) and report your accuracy, which should be at least 49%.<span class="rubric">1</span></li>
+<li>Try running <code>predict.py</code> with your model. (Nothing to report.)
+</ol>
+</p>
+
+<h2>3. RNN language model</h2>
+
+<p>Now we will try building a neural language model using <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>.</p>
+<ol class="alpha">
+<li>To get started with PyTorch, try our <a href="https://www.kaggle.com/code/davidweichiang/pytorch-tutorial">tutorial notebook</a>, which trains a unigram language model. For help with Kaggle, please see our <a href="kaggle.html">Kaggle tutorial</a>.</li>
+<li>Write code to implement an RNN language model.<span class="rubric">5</span> You may reuse any code from the tutorial notebook, and you may use any functions provided by PyTorch.
+It turns out that a simple RNN isn't very sensitive to dependencies between the previous state and the input symbol. An LSTM (long short term memory) RNN works better (in place of equation 2.17). It computes <em>two</em> sequences of vectors,
+\begin{align}
+(\mathbf{h}^{(-1)}, \mathbf{c}^{(-1)}) &= (\mathbf{0}, \mathbf{0}) \\
+(\mathbf{h}^{(t)}, \mathbf{c}^{(t)}) &= \text{LSTMCell}\left(\mathbf{x}^{(t)}, \left(\mathbf{h}^{(t-1)}, \mathbf{c}^{(t-1)}\right)\right)
+\end{align}
+where $\text{LSTMCell}$ is an instance of PyTorch's <code>LSTMCell</code>.
+<span class="corrected">The $\mathbf{x}^{(t)}$ can be one-hot vectors as in equation 2.17, or they can be word embeddings.</span>
+The outputs are just the $\mathbf{h}^{(t)}$, <span class="corrected">which plug into equation 2.21.</span>
+</li>
+<li>Train on <code>data/small</code> and validate on <code>data/dev</code>, using $d=128$ for both $\mathbf{h}^{(t)}$ and $\mathbf{c}^{(t)}$. Report your dev accuracy, which should be at least 40%.<span class="rubric">1</span>
+For us, using no GPU, each epoch took less than 5 minutes, and 10 epochs was enough.</li>
+<li>
+Train on <code>data/large</code> and again validate on <code>data/dev</code>, using $d=512$.
+Report your dev accuracy, which should be at least 53%.<span class="rubric">1</span>
+For us, using a P100 GPU, each epoch took about 20 minutes, and 10 epochs was enough.
+Save and submit your best model.<span class="rubric">1</span>
+</li>
+<li>After you've gotten your model working, run it on the test set (<code>data/test</code>) and report your accuracy,<span class="rubric">1</span> which should be at least <span class="corrected">53%</span>.<span class="rubric">1</span></li>
+<li>Try running <code>predict.py</code> with your model. Because training takes a while, you'll probably want to load a trained model from disk. (Nothing to report.)
+</ol>
+
+<h2>Submission</h2>
+
+<p>Please read these submission instructions carefully.
+<ol>
+<li>As often as you want, add and commit your submission files to the repository you created in the beginning.</li>
+<li>Before submitting, the repository should contain:
+<ul>
+<li>All of the <b>code</b> that you wrote.</li>
+<li>Your final saved <b>model</b> from Part 3.</li>
+<li>A <b>README.md</b> file with
+<ul>
+<li>Instructions on how to build/run your code.</li>
+<li>Your responses to all of the instructions/questions in the assignment.</li>
+</ul>
+</ul>
+<li>To submit:
+<ul><li>Push your work to GitHub and create a <b>release</b> in GitHub by clicking on "Releases" on the right-hand side, then "Create a new release" or "Draft a new release". Fill in "Tag version" and "Release title" with the part number(s) you're submitting and click "Publish Release".</li>
+<li>If you submit the same part more than once, the grader will grade the latest release for that part.</li>
+<li>For computing the late penalty, the submission time will be considered the commit time, not the release time.</li>
+</ul></li>
+</ol>
+</p>
+
+</div>
+</div>
+
+<div class="footer">
+&copy; 2015&ndash;2021 David Chiang. Unless otherwise indicated, all materials are licensed under a <a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>
+</div>
+
+<script src="js/vendor/jquery.min.js"></script>
+<script src="js/vendor/what-input.min.js"></script>
+<script src="js/foundation.min.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
+
