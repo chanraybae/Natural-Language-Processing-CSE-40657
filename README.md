@@ -1,6 +1,7 @@
 # Natural-Language-Processing-CSE-40657
 Current course, will upload more as I get graded feedback
 
+C + V HW1 instructions if HTML file download is undesired:
 CSE 40657/60657
 Homework 1
 Due
